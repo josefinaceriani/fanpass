@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FanPass · Prototipo</title>
+<style>
+  :root{
+    --bg:#0E0F0C; --surface:#1A1C17; --surface-2:#23261F; --line:#2E322A;
+    --accent:#CDFF3A; --accent-dim:#9FC72E; --text:#F4F5F0; --muted:#8A8D82;
+    --amber:#F5A623; --coral:#FF6B5E; --blue:#5B8DEF; --violet:#C061D6; --magenta:#E0457B;
+    --radius:22px; --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:#000;color:var(--text);display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;}
+  .stage{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(900px 500px at 80% -10%,rgba(205,255,58,.10),transparent 60%),
+      radial-gradient(700px 600px at -10% 110%,rgba(91,141,239,.06),transparent 55%),#070806;padding:24px;}
+  .phone{position:relative;width:390px;height:844px;max-height:96vh;background:var(--bg);
+    border-radius:46px;box-shadow:0 0 0 11px #15171180,0 40px 90px -20px #000,0 0 120px -40px var(--accent);
+    overflow:hidden;display:flex;flex-direction:column;}
+  @media (max-width:520px){.stage{padding:0}.phone{width:100vw;height:100vh;max-height:none;border-radius:0;box-shadow:none;}}
+
+  .statusbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 26px 6px;font-size:13px;font-weight:600;color:var(--text);}
+  .statusbar .dots{display:flex;gap:5px;align-items:center}
+  .statusbar .sig{width:16px;height:10px;background:linear-gradient(90deg,var(--text) 60%,var(--muted) 60%);border-radius:2px}
+  .statusbar .bat{width:22px;height:11px;border:1.5px solid var(--text);border-radius:3px;position:relative}
+  .statusbar .bat::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:var(--text);border-radius:0 1px 1px 0}
+  .statusbar .bat::before{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:70%;background:var(--accent);border-radius:1px}
+
+  .viewport{position:relative;flex:1 1 auto;overflow:hidden}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:6px 20px 100px;overflow-y:auto;overflow-x:hidden;
+    opacity:0;visibility:hidden;transform:translateX(18px);transition:opacity .32s var(--ease),transform .32s var(--ease),visibility .32s;-webkit-overflow-scrolling:touch;}
+  .screen::-webkit-scrollbar{width:0}
+  .screen.active{opacity:1;visibility:visible;transform:none}
+  .screen.back{transform:translateX(-18px)}
+  .screen.noscroll{overflow:hidden}
+
+  .topbar{display:flex;align-items:center;gap:12px;padding:8px 0 14px;position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 70%,transparent)}
+  .iconbtn{width:42px;height:42px;flex:0 0 auto;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;transition:.2s;overflow:hidden}
+  .iconbtn:active{transform:scale(.92)}
+  .topbar h2{font-size:18px;font-weight:700;letter-spacing:-.2px;flex:1}
+  .topbar .right{margin-left:auto}
+  .avatar{background:linear-gradient(135deg,var(--accent),#7da82a);color:#0c0f06;font-weight:800;font-size:15px}
+
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.5px;font-size:17px}
+  .mark{width:24px;height:24px;flex:0 0 auto}
+  h1.title{font-size:30px;line-height:1.05;font-weight:800;letter-spacing:-.8px;margin:6px 0}
+  h1.title .hl{color:var(--accent)}
+  .sub{color:var(--muted);font-size:14px;line-height:1.5}
+  .eyebrow{color:var(--accent);font-weight:700;font-size:11.5px;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:8px}
+  .accent{color:var(--accent)}.muted{color:var(--muted)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px;border:none;border-radius:16px;background:var(--accent);color:#0c0f06;font-size:15.5px;font-weight:800;letter-spacing:-.2px;cursor:pointer;transition:transform .15s var(--ease),filter .2s}
+  .btn:active{transform:scale(.975)}.btn:hover{filter:brightness(1.05)}
+  .btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--line)}
+  .btn.outline{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;font-size:11.5px;font-weight:700;background:rgba(205,255,58,.12);color:var(--accent);border:1px solid rgba(205,255,58,.25)}
+  .pill.amber{background:rgba(245,166,35,.12);color:var(--amber);border-color:rgba(245,166,35,.3)}
+  .pill.grey{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+  .pill.solid{background:var(--accent);color:#0c0f06;border:none}
+  .pill.blue{background:rgba(91,141,239,.14);color:var(--blue);border-color:rgba(91,141,239,.3)}
+  .verified{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:12px;font-weight:700}
+  .section-h{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin:20px 0 10px;display:flex;justify-content:space-between;align-items:center}
+  .section-h .lk{color:var(--accent);text-transform:none;letter-spacing:0;cursor:pointer}
+
+  /* event hero with american-football illustration */
+  .event-hero{position:relative;border-radius:24px;overflow:hidden;border:1px solid #343a2c;cursor:pointer;transition:.2s}
+  .event-hero:active{transform:scale(.99)}
+  .event-hero .art{height:182px;position:relative;display:block;width:100%}
+  .event-hero .grad{position:absolute;inset:0;background:linear-gradient(180deg,transparent 28%,rgba(12,14,8,.6) 68%,#12150e 100%)}
+  .event-hero .ov{position:absolute;left:16px;right:16px;bottom:14px;z-index:2}
+  .event-hero .vs{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-top:6px}
+  .event-hero .meta{font-size:12.5px;color:#cdd2c5;margin-top:2px}
+  .event-hero .toprow{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;z-index:2}
+
+  .teamrow{display:flex;align-items:center;gap:10px}
+  .helmet{width:30px;height:30px;flex:0 0 auto}
+  .teamrow .nm{font-weight:800;font-size:15px}
+
+  .ticket{position:relative;border-radius:24px;overflow:hidden;border:1px solid #343a2c;background:#14170f}
+  .ticket .art{height:150px;position:relative}
+  .ticket .grad{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(12,14,8,.6),#14170f)}
+  .ticket .body{padding:18px}
+  .ticket-dash{border:none;border-top:2px dashed #3c4233;margin:0 -18px 14px;position:relative}
+  .ticket-dash::before,.ticket-dash::after{content:"";position:absolute;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--bg)}
+  .ticket-dash::before{left:-9px}.ticket-dash::after{right:-9px}
+  .field .k{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+  .field .v{font-size:14.5px;font-weight:700;margin-top:3px}
+
+  .list{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+  .litem{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px 14px;cursor:pointer;transition:.18s}
+  .litem:active{transform:scale(.99)}.litem:hover{border-color:#3a4031}
+  .ico{width:42px;height:42px;flex:0 0 auto;border-radius:12px;background:var(--surface-2);display:flex;align-items:center;justify-content:center}
+  .litem .meta{flex:1;min-width:0}.litem .meta .t{font-weight:700;font-size:14px}.litem .meta .s{font-size:12px;color:var(--muted);margin-top:2px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+
+  .stat-row{display:flex;gap:10px}
+  .stat{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px 13px}
+  .stat .n{font-size:22px;font-weight:800;letter-spacing:-.5px}.stat .l{font-size:10.5px;color:var(--muted);margin-top:2px}
+
+  .sectors{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .sector{display:flex;align-items:center;gap:13px;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:14px 15px;cursor:pointer;transition:.18s}
+  .sector.sel{border-color:var(--accent);background:rgba(205,255,58,.06)}
+  .sector .price{margin-left:auto;font-weight:800;font-size:15px}
+  .sector .check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+  .sector.sel .check{border-color:var(--accent);background:var(--accent)}
+  .sector .check svg{display:none}.sector.sel .check svg{display:block}
+
+  .qrwrap{position:relative;width:200px;margin:4px auto 0;aspect-ratio:1;border-radius:20px;background:var(--text);padding:14px;box-shadow:0 0 0 1px var(--line),0 18px 50px -18px var(--accent)}
+  .qr{width:100%;height:100%}.qr rect{fill:#0c0f06}
+  .scanline{position:absolute;left:14px;right:14px;height:3px;border-radius:2px;background:var(--accent);box-shadow:0 0 14px 2px var(--accent);top:14px;animation:scan 2.4s var(--ease) infinite}
+  @keyframes scan{0%{top:14px}50%{top:calc(100% - 14px)}100%{top:14px}}
+  .countdown{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px}
+  .ring{position:relative;width:44px;height:44px}.ring svg{transform:rotate(-90deg)}
+  .ring .bg{stroke:var(--line)}.ring .fg{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+  .ring .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+
+  /* ===== COLLECTIBLE HOLOGRAPHIC CARD ===== */
+  .cardgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+  .pcard{position:relative;border-radius:16px;overflow:hidden;cursor:pointer;transition:.22s var(--ease);aspect-ratio:.66}
+  .pcard:active{transform:scale(.97)}
+  .pcard:hover{transform:translateY(-3px)}
+  .pcard-img{width:100%;height:100%;object-fit:cover;display:block}
+  .pcard .holo{position:absolute;inset:0}
+  .pcard .label{position:absolute;left:0;right:0;bottom:0;padding:8px 9px;z-index:3}
+  .pcard .label .nm{font-size:12px;font-weight:800;letter-spacing:-.2px;text-shadow:0 1px 4px #000}
+  .pcard .label .tm{font-size:9.5px;color:#cdd2c5;margin-top:1px;text-transform:uppercase;letter-spacing:.5px}
+  .rarity{position:absolute;top:8px;right:8px;z-index:4;font-size:8.5px;font-weight:800;letter-spacing:.5px;padding:3px 7px;border-radius:6px;text-transform:uppercase}
+
+  /* entradas list inside collection */
+  .seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:10px}
+  .seg button{flex:1;border:none;background:transparent;color:var(--muted);font-weight:700;font-size:13px;padding:9px;border-radius:10px;cursor:pointer;transition:.18s}
+  .seg button.on{background:var(--accent);color:#0c0f06}
+
+  .info-line{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .info-line:last-child{border-bottom:none}
+  .info-line .k{color:var(--muted)}.info-line .v{font-weight:600;text-align:right;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .benefit{display:flex;gap:13px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px}
+  .benefit.locked{opacity:.5}
+  .benefit .b-ic{width:44px;height:44px;border-radius:13px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:rgba(205,255,58,.12);color:var(--accent)}
+  .benefit.locked .b-ic{background:var(--surface-2);color:var(--muted)}
+  .benefit .meta{flex:1}.benefit .meta .t{font-weight:700;font-size:14px}.benefit .meta .s{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+
+  .mkt{display:flex;gap:13px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:11px;cursor:pointer;transition:.18s}
+  .mkt:active{transform:scale(.99)}.mkt:hover{border-color:#3a4031}
+  .mkt .thumb{width:60px;height:60px;border-radius:12px;overflow:hidden;flex:0 0 auto;position:relative}
+  .mkt .meta{flex:1;min-width:0}.mkt .meta .t{font-weight:700;font-size:14px}.mkt .meta .s{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .mkt .price{text-align:right;flex:0 0 auto}.mkt .price .p{font-weight:800;font-size:15px}.mkt .price .o{font-size:11px;color:var(--muted);text-decoration:line-through}
+
+  .capacity-card{background:linear-gradient(160deg,#1f2319,#141710);border:1px solid #2c3124;border-radius:22px;padding:20px}
+  .gauge{position:relative;width:170px;height:170px;margin:6px auto 0}
+  .gauge .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .gauge .num .big{font-size:34px;font-weight:800;letter-spacing:-1px}.gauge .num .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--coral)}
+  .live .blip{width:8px;height:8px;border-radius:50%;background:var(--coral);animation:blip 1.4s ease-in-out infinite}
+  @keyframes blip{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+  .gate{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .gate .g-ic{width:38px;height:38px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--accent)}
+  .gate .g-meta{flex:1}.gate .g-meta .t{font-weight:700;font-size:13.5px}.gate .g-meta .s{font-size:11px;color:var(--muted)}
+  .bar{height:8px;border-radius:6px;background:var(--surface-2);overflow:hidden}.bar i{display:block;height:100%;border-radius:6px;background:var(--accent)}
+  .feed{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .feed:last-child{border-bottom:none}.feed .fdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+
+  /* org event item */
+  .ev{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:11px;cursor:pointer;transition:.18s}
+  .ev:hover{border-color:#3a4031}.ev:active{transform:scale(.99)}
+  .ev .evthumb{width:62px;height:62px;border-radius:12px;overflow:hidden;flex:0 0 auto;position:relative}
+  .ev .meta{flex:1;min-width:0}.ev .meta .t{font-weight:700;font-size:14px}.ev .meta .s{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .add-ev{display:flex;align-items:center;justify-content:center;gap:9px;border:1.5px dashed #3c4233;border-radius:16px;padding:16px;color:var(--accent);font-weight:700;font-size:14px;cursor:pointer;transition:.18s;background:rgba(205,255,58,.03)}
+  .add-ev:hover{border-color:var(--accent);background:rgba(205,255,58,.07)}
+
+  .scanbox{position:relative;width:100%;aspect-ratio:.92;border-radius:24px;overflow:hidden;background:#06070a;border:1px solid var(--line);margin-top:6px}
+  .corner{position:absolute;width:32px;height:32px;border:3px solid var(--accent)}
+  .corner.tl{top:30px;left:30px;border-right:none;border-bottom:none;border-radius:12px 0 0 0}
+  .corner.tr{top:30px;right:30px;border-left:none;border-bottom:none;border-radius:0 12px 0 0}
+  .corner.bl{bottom:30px;left:30px;border-right:none;border-top:none;border-radius:0 0 0 12px}
+  .corner.br{bottom:30px;right:30px;border-left:none;border-top:none;border-radius:0 0 12px 0}
+  .scanbox .beam{position:absolute;left:30px;right:30px;height:3px;background:var(--accent);box-shadow:0 0 16px 3px var(--accent);animation:scan2 2s var(--ease) infinite}
+  @keyframes scan2{0%{top:36px}50%{top:calc(100% - 36px)}100%{top:36px}}
+  .scanbox .mini-qr{position:absolute;inset:0;margin:auto;width:110px;height:110px;opacity:.2}
+  .success{position:absolute;inset:0;background:var(--accent);color:#0c0f06;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;opacity:0;visibility:hidden;transform:scale(1.04);transition:.4s var(--ease);z-index:30;padding:30px;text-align:center}
+  .success.show{opacity:1;visibility:visible;transform:none}
+  .success .big{width:90px;height:90px;border-radius:50%;background:#0c0f06;display:flex;align-items:center;justify-content:center}
+  .success h2{font-size:27px;font-weight:800;letter-spacing:-.5px}.success p{font-weight:600;opacity:.8;max-width:240px;font-size:13.5px}
+
+  .tabbar{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;width:calc(100% - 32px);max-width:362px;background:rgba(20,22,17,.88);backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:22px;display:flex;justify-content:space-around;padding:8px 6px;z-index:20;}
+  @media (max-width:520px){.tabbar{bottom:max(14px,env(safe-area-inset-bottom))}}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:14px;transition:.18s;flex:1}
+  .tab svg{width:22px;height:22px}.tab.active{color:var(--accent)}.tab.active svg{filter:drop-shadow(0 0 6px rgba(205,255,58,.5))}
+
+  .toast{position:absolute;left:50%;transform:translateX(-50%) translateY(20px);bottom:92px;background:var(--text);color:#0c0f06;padding:12px 18px;border-radius:14px;font-weight:700;font-size:13px;opacity:0;transition:.3s var(--ease);z-index:40;display:flex;align-items:center;gap:8px;pointer-events:none;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .hidden{display:none!important}.spacer{flex:1}
+  .mt8{margin-top:8px}.mt14{margin-top:14px}.mt20{margin-top:20px}.center{text-align:center}
+
+  .role-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 4px}
+  .role-card{position:relative;border-radius:22px;overflow:hidden;border:1px solid var(--line);cursor:pointer;transition:.2s;margin-top:14px}
+  .role-card:active{transform:scale(.98)}.role-card:hover{border-color:var(--accent)}
+  .role-card .art{height:128px;position:relative}
+  .role-card .grad{position:absolute;inset:0;background:linear-gradient(110deg,rgba(12,14,8,.2),rgba(12,14,8,.86))}
+  .role-card .ov{position:absolute;inset:0;padding:18px;display:flex;flex-direction:column;justify-content:center;z-index:2}
+  .role-card .ov .t{font-size:20px;font-weight:800;letter-spacing:-.4px}
+  .role-card .ov .s{font-size:12.5px;color:#cdd2c5;margin-top:3px;max-width:225px}
+  .role-card .arrow{position:absolute;right:18px;top:50%;transform:translateY(-50%);z-index:2}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="statusbar">
+      <span id="clock">20:45</span>
+      <div class="dots"><span class="sig"></span><span style="font-size:11px;font-weight:700">5G</span><span class="bat"></span></div>
+    </div>
+
+    <div class="viewport" id="viewport">
+
+      <!-- 0. ROLE PICKER -->
+      <section class="screen active noscroll" id="s-role">
+        <div class="topbar"><div class="brand"><span class="mark">__MARK__</span> FanPass</div><span class="pill grey right">Beta</span></div>
+        <div class="role-wrap">
+          <div class="eyebrow">Tu entrada, para siempre tuya</div>
+          <h1 class="title">¿Cómo querés <span class="hl">entrar</span>?</h1>
+          <p class="sub">Elegí tu experiencia. Podés cambiar de rol cuando quieras.</p>
+          <div class="role-card" onclick="enterFan()">
+            <div class="art">__ART_STADIUM__<div class="grad"></div></div>
+            <div class="ov"><span class="pill" style="align-self:flex-start">Hincha</span><div class="t mt8">Soy asistente</div><div class="s">Comprá, revendé y coleccioná tus entradas y cards del partido.</div></div>
+            <span class="arrow">__ICON_ARROW__</span>
+          </div>
+          <div class="role-card" onclick="enterOrg()">
+            <div class="art">__ART_ORGSCENE__<div class="grad"></div></div>
+            <div class="ov"><span class="pill grey" style="align-self:flex-start;color:var(--accent)">Organizador</span><div class="t mt8">Organizo el evento</div><div class="s">Mirá la capacidad en vivo y gestioná todos tus eventos.</div></div>
+            <span class="arrow">__ICON_ARROW__</span>
+          </div>
+          <p class="center mt14" style="font-size:13px;color:var(--muted)">¿Primera vez? <span style="color:var(--accent);font-weight:700;cursor:pointer" onclick="go('s-onboard')">Creá tu cuenta</span></p>
+        </div>
+      </section>
+
+      <!-- ================= FAN: HOME ================= -->
+      <section class="screen" id="s-home">
+        <div class="topbar">
+          <div><div class="muted" style="font-size:12.5px">Hola de nuevo</div><div style="font-weight:800;font-size:19px;letter-spacing:-.3px">Matías</div></div>
+          <div class="iconbtn right" onclick="go('s-role')" title="Cambiar de rol" style="margin-left:auto">__ICON_SWAP__</div>
+          <div class="iconbtn" onclick="go('s-profile')"><span class="avatar" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:50%">M</span></div>
+        </div>
+        <div class="section-h" style="margin-top:4px">Tu próximo evento</div>
+        <div class="event-hero" onclick="go('s-ticket')">
+          <div class="art">__ART_FIELD1__<div class="grad"></div>
+            <div class="toprow"><span class="pill">__ICON_DOT__ Dom · 18:30</span><span class="verified" style="background:rgba(12,14,8,.5);padding:6px 10px;border-radius:999px">__ICON_SHIELD__ Auténtica</span></div>
+            <div class="ov">
+              <div style="font-size:11.5px;color:#cdd2c5">Semana 14 · Liberty Dome</div>
+              <div class="teamrow" style="margin-top:6px">__HELM_STORM__<span class="nm">Kansas Storm</span><span class="muted" style="font-size:13px;margin:0 2px">vs</span>__HELM_BLAZE__<span class="nm">Phoenix Blaze</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-row mt14">
+          <div class="stat"><div class="n">5</div><div class="l">Entradas</div></div>
+          <div class="stat"><div class="n">8</div><div class="l">Cards</div></div>
+          <div class="stat"><div class="n accent">4</div><div class="l">Beneficios</div></div>
+        </div>
+        <div class="section-h">Accesos rápidos</div>
+        <div class="list">
+          <div class="litem" onclick="go('s-buy')"><span class="ico">__ICON_PLUS__</span><div class="meta"><div class="t">Comprar entrada</div><div class="s">Próximos partidos disponibles</div></div><span class="muted">→</span></div>
+          <div class="litem" onclick="go('s-market')"><span class="ico">__ICON_SWAP__</span><div class="meta"><div class="t">Market</div><div class="s">Comprá y vendé entradas</div></div><span class="muted">→</span></div>
+          <div class="litem" onclick="go('s-ticket')"><span class="ico">__ICON_TICKET2__</span><div class="meta"><div class="t">Ver mi entrada</div><div class="s">QR de acceso para hoy</div></div><span class="muted">→</span></div>
+          <div class="litem" onclick="go('s-collection')"><span class="ico">__ICON_CARD__</span><div class="meta"><div class="t">Mi colección</div><div class="s">Entradas y cards de eventos</div></div><span class="muted">→</span></div>
+          <div class="litem" onclick="go('s-benefits')"><span class="ico">__ICON_GIFT__</span><div class="meta"><div class="t">Beneficios</div><div class="s">4 disponibles para vos</div></div><span class="muted">→</span></div>
+        </div>
+        <div style="height:8px"></div>
+      </section>
+
+      <!-- FAN: PROFILE -->
+      <section class="screen" id="s-profile">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-home')">←</div><h2>Mi perfil</h2></div>
+        <div class="card center" style="padding:24px">
+          <div class="avatar" style="width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto">M</div>
+          <div style="font-weight:800;font-size:19px;margin-top:12px">Matías Ríos</div>
+          <div class="muted" style="font-size:13px">Fan desde 2025</div>
+          <div class="mono mt8" style="font-size:12.5px;color:var(--accent)">0x3f…a91c</div>
+          <span class="verified mt8" style="justify-content:center;display:flex">__ICON_SHIELD__ Wallet verificada</span>
+        </div>
+        <div class="section-h">Cuenta</div>
+        <div class="list">
+          <div class="litem"><span class="ico">__ICON_WALLET__</span><div class="meta"><div class="t">Mi wallet integrada</div><div class="s">0x3f…a91c · Polygon</div></div><span class="muted">→</span></div>
+          <div class="litem"><span class="ico">__ICON_BELL__</span><div class="meta"><div class="t">Notificaciones</div><div class="s">Eventos, beneficios y ofertas</div></div><span class="muted">→</span></div>
+          <div class="litem" onclick="go('s-role')"><span class="ico">__ICON_SWAP__</span><div class="meta"><div class="t">Cambiar de rol</div><div class="s">Ir al panel de organizador</div></div><span class="muted">→</span></div>
+        </div>
+      </section>
+
+      <!-- FAN: TICKET -->
+      <section class="screen" id="s-ticket">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-home')">←</div><h2>Tu entrada</h2><div class="iconbtn right">__ICON_SHARE__</div></div>
+        <div class="ticket">
+          <div class="art">__ART_FIELD1__<div class="grad"></div>
+            <div class="toprow" style="position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:2"><span class="pill">__ICON_DOT__ Válida hoy</span><span class="verified" style="background:rgba(12,14,8,.5);padding:6px 10px;border-radius:999px">__ICON_SHIELD__ Auténtica</span></div>
+          </div>
+          <div class="body">
+            <div class="teamrow">__HELM_STORM__<span style="font-weight:800;font-size:15px">Storm</span><span class="muted" style="font-size:12px">vs</span>__HELM_BLAZE__<span style="font-weight:800;font-size:15px">Blaze</span></div>
+            <div class="muted" style="font-size:12.5px;margin-top:4px">Sec. 124 · Fila 12 · Asiento 08</div>
+            <div class="qrwrap"><div class="scanline"></div>__QR_BIG__</div>
+            <div class="countdown">
+              <div class="ring"><svg width="44" height="44" viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="18" fill="none" stroke-width="4"/><circle class="fg" id="ringfg" cx="22" cy="22" r="18" fill="none" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="0"/></svg><span class="num" id="cd">30</span></div>
+              <div style="text-align:left"><div style="font-weight:700;font-size:13px">QR dinámico</div><div class="muted" style="font-size:11.5px">Se renueva solo. Una captura no sirve.</div></div>
+            </div>
+            <hr class="ticket-dash" style="margin-top:16px">
+            <div class="info-line" style="padding-top:0"><span class="k">Token ID</span><span class="v mono">#4206</span></div>
+            <div class="info-line"><span class="k">Titular</span><span class="v mono">0x3f…a91c</span></div>
+          </div>
+        </div>
+        <button class="btn outline mt14" onclick="go('s-sell')">__ICON_SWAP__ Poner en venta</button>
+        <div style="height:8px"></div>
+      </section>
+
+      <!-- FAN: MARKET -->
+      <section class="screen" id="s-market">
+        <div class="topbar"><h2>Market</h2><div class="iconbtn right">__ICON_SEARCH__</div></div>
+        <div class="seg" id="mkt-seg">
+          <button class="on" onclick="mktTab(this,'buy')">Comprar</button>
+          <button onclick="mktTab(this,'sell')">Vender</button>
+        </div>
+        <div id="mkt-buy">
+          <p class="sub" style="margin:4px 0 2px">Entradas reales en venta por otros fans. Cada transferencia queda registrada en blockchain.</p>
+          <div class="section-h">Disponibles ahora</div>
+          <div class="list">
+            <div class="mkt" onclick="go('s-listing')"><div class="thumb">__ART_FIELD2__</div><div class="meta"><div class="t">Storm vs. Blaze</div><div class="s">Sec. 124 · Fila 8 · verificada</div></div><div class="price"><div class="p accent">$9.200</div><div class="o">$8.500</div></div></div>
+            <div class="mkt" onclick="go('s-listing')"><div class="thumb">__ART_FIELD3__</div><div class="meta"><div class="t">Summit vs. Tide</div><div class="s">Sec. 210 · Fila 3 · verificada</div></div><div class="price"><div class="p accent">$6.000</div><div class="o">$5.200</div></div></div>
+            <div class="mkt" onclick="go('s-listing')"><div class="thumb">__ART_FIELD4__</div><div class="meta"><div class="t">Storm vs. Monarchs</div><div class="s">Palco · verificada</div></div><div class="price"><div class="p accent">$15.500</div></div></div>
+          </div>
+          <div class="card mt20" style="padding:14px;display:flex;gap:11px;align-items:center">
+            <span class="ico" style="background:rgba(205,255,58,.12)">__ICON_SHIELD2__</span>
+            <div><div style="font-weight:700;font-size:13px">Reventa segura</div><div class="muted" style="font-size:11.5px;line-height:1.4">El precio máximo lo define el organizador. Un porcentaje de cada reventa vuelve al club.</div></div>
+          </div>
+        </div>
+        <div id="mkt-sell" class="hidden">
+          <p class="sub" style="margin:4px 0 2px">Publicá una de tus entradas para venderla a otros fans.</p>
+          <div class="section-h">Tus entradas</div>
+          <div class="list">
+            <div class="mkt" onclick="go('s-sell')"><div class="thumb">__ART_FIELD1__</div><div class="meta"><div class="t">Storm vs. Blaze</div><div class="s">Sec. 124 · Fila 12 · disponible</div></div><span class="pill" style="font-size:10.5px">Vender</span></div>
+          </div>
+          <div class="section-h">Publicadas</div>
+          <div class="list">
+            <div class="mkt" style="cursor:default"><div class="thumb">__ART_FIELD3__</div><div class="meta"><div class="t">Summit vs. Tide</div><div class="s">Sec. 210 · Fila 5</div></div><div class="price"><div class="p">$6.300</div><span class="pill amber" style="font-size:10px">En venta</span></div></div>
+          </div>
+        </div>
+        <div style="height:8px"></div>
+      </section>
+
+      <!-- FAN: SELL -->
+      <section class="screen" id="s-sell">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-market')">←</div><h2>Poner en venta</h2></div>
+        <div class="mkt" style="cursor:default;margin-bottom:6px"><div class="thumb">__ART_FIELD1__</div><div class="meta"><div class="t">Storm vs. Blaze</div><div class="s">Sec. 124 · Fila 12 · Asiento 08</div></div></div>
+        <div class="section-h">Precio de venta</div>
+        <div class="card" style="padding:18px;text-align:center">
+          <div class="muted" style="font-size:12px">Definí tu precio</div>
+          <div style="font-size:38px;font-weight:800;letter-spacing:-1px;margin:6px 0">$9.000</div>
+          <span class="pill grey">Máximo permitido por el club: $10.200</span>
+        </div>
+        <div class="card mt14" style="padding:15px">
+          <div class="info-line"><span class="k">Recibís</span><span class="v">$8.370</span></div>
+          <div class="info-line"><span class="k">Comisión del club (7%)</span><span class="v">$630</span></div>
+          <div class="info-line"><span class="k">Transferencia</span><span class="v accent">On-chain · Polygon</span></div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn mt14" onclick="back('s-market'); toast('Entrada publicada en el market')">Publicar en el market</button>
+        <div style="height:8px"></div>
+      </section>
+
+      <!-- FAN: LISTING -->
+      <section class="screen" id="s-listing">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-market')">←</div><h2>Detalle de la entrada</h2></div>
+        <div class="ticket">
+          <div class="art">__ART_FIELD2__<div class="grad"></div>
+            <div class="toprow" style="position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:2"><span class="pill amber">Reventa</span><span class="verified" style="background:rgba(12,14,8,.5);padding:6px 10px;border-radius:999px">__ICON_SHIELD__ Verificada</span></div>
+          </div>
+          <div class="body">
+            <div class="teamrow">__HELM_STORM__<span style="font-weight:800;font-size:15px">Storm</span><span class="muted" style="font-size:12px">vs</span>__HELM_BLAZE__<span style="font-weight:800;font-size:15px">Blaze</span></div>
+            <div class="muted" style="font-size:12.5px;margin-top:4px">Sec. 124 · Fila 8 · Asiento 14</div>
+            <hr class="ticket-dash" style="margin-top:14px">
+            <div class="info-line" style="padding-top:0"><span class="k">Vendedor</span><span class="v mono">0x7a…b34f</span></div>
+            <div class="info-line"><span class="k">Historial</span><span class="v">1 dueño previo</span></div>
+            <div class="info-line"><span class="k">Token ID</span><span class="v mono">#3877</span></div>
+          </div>
+        </div>
+        <div class="card mt14" style="padding:16px;display:flex;justify-content:space-between;align-items:center">
+          <div><div class="muted" style="font-size:12px">Precio</div><div style="font-size:24px;font-weight:800">$9.200</div></div>
+          <span class="pill grey">Original $8.500</span>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn mt14" onclick="back('s-market'); toast('¡Entrada comprada! Ya está en tu wallet')">__ICON_LOCK__ Comprar entrada</button>
+        <div style="height:8px"></div>
+      </section>
+
+      <!-- FAN: COLLECTION (entradas + cards) -->
+      <section class="screen" id="s-collection">
+        <div class="topbar"><h2>Colección</h2><span class="pill grey right">13 ítems</span></div>
+        <div class="seg" id="coll-seg">
+          <button class="on" onclick="collTab(this,'cards')">Cards</button>
+          <button onclick="collTab(this,'tickets')">Mis entradas</button>
+        </div>
+
+        <div id="coll-cards">
+          <p class="sub" style="margin:0 0 2px">Coleccionables que te quedan al asistir a cada partido. Únicos y verificables en tu wallet.</p>
+          <div class="cardgrid">
+            <div class="pcard" onclick="go('s-card')"><img class="pcard-img" src="img/card3.png" alt="Card coleccionable"></div>
+            <div class="pcard" onclick="go('s-card')"><img class="pcard-img" src="img/card4.png" alt="Card coleccionable"></div>
+            <div class="pcard" onclick="go('s-card')"><img class="pcard-img" src="img/card5.png" alt="Card coleccionable"></div>
+            <div class="pcard" onclick="go('s-card')"><img class="pcard-img" src="img/card6.png" alt="Card coleccionable"></div>
+          </div>
+        </div>
+
+        <div id="coll-tickets" class="hidden">
+          <p class="sub" style="margin:0 0 2px">Tus entradas activas y usadas. Las activas tienen QR; las usadas quedan como registro.</p>
+          <div class="list">
+            <div class="mkt" onclick="go('s-ticket')"><div class="thumb">__ART_FIELD1__</div><div class="meta"><div class="t">Storm vs. Blaze</div><div class="s">Hoy · Sec. 124 · activa</div></div><span class="pill" style="font-size:10.5px">QR</span></div>
+            <div class="mkt" style="cursor:default;opacity:.75"><div class="thumb">__ART_FIELD3__</div><div class="meta"><div class="t">Summit vs. Tide</div><div class="s">Mar 2026 · usada</div></div><span class="pill grey" style="font-size:10.5px">Usada</span></div>
+            <div class="mkt" style="cursor:default;opacity:.75"><div class="thumb">__ART_FIELD4__</div><div class="meta"><div class="t">Storm vs. Monarchs</div><div class="s">Dic 2025 · usada</div></div><span class="pill grey" style="font-size:10.5px">Usada</span></div>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+      </section>
+
+      <!-- FAN: CARD DETAIL -->
+      <section class="screen" id="s-card">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-collection')">←</div><h2>Card coleccionable</h2><div class="iconbtn right">__ICON_SHARE__</div></div>
+        <div style="display:flex;justify-content:center;margin-top:4px">
+          <div class="pcard" style="width:70%;aspect-ratio:.66;cursor:default"><img class="pcard-img" src="img/card3.png" alt="Card coleccionable"></div>
+        </div>
+        <div class="center mt14"><span class="rarity" style="position:static;background:linear-gradient(90deg,#E0457B,#ff8db5);color:#fff">Legendary · 1 de 50</span></div>
+        <div class="section-h">Datos verificables</div>
+        <div class="card" style="padding:16px">
+          <div class="info-line"><span class="k">Jugador</span><span class="v">D. Cole · #12</span></div>
+          <div class="info-line"><span class="k">Partido</span><span class="v">Storm vs. Blaze</span></div>
+          <div class="info-line"><span class="k">Estándar</span><span class="v">ERC-721</span></div>
+          <div class="info-line"><span class="k">Token ID</span><span class="v mono">#3981</span></div>
+          <div class="info-line"><span class="k">Red</span><span class="v">Polygon PoS</span></div>
+          <div class="info-line"><span class="k">Metadata</span><span class="v mono accent">IPFS · ver</span></div>
+        </div>
+        <div class="section-h">Desbloqueó</div>
+        <div class="benefit"><span class="b-ic">__ICON_STAR__</span><div class="meta"><div class="t">Prioridad de compra</div><div class="s">Acceso anticipado al próximo partido de local</div></div></div>
+        <div style="height:12px"></div>
+      </section>
+
+      <!-- FAN: BENEFITS -->
+      <section class="screen" id="s-benefits">
+        <div class="topbar"><h2>Beneficios</h2></div>
+        <div class="card" style="background:linear-gradient(160deg,#1f2319,#141710);border-color:#2c3124">
+          <div class="muted" style="font-size:12px">Tu fidelidad acumulada</div>
+          <h1 class="title" style="font-size:26px;margin:6px 0 2px">4 beneficios <span class="hl">activos</span></h1>
+          <div class="muted" style="font-size:12.5px">Por asistir a 3 partidos verificados</div>
+        </div>
+        <div class="section-h">Disponibles ahora</div>
+        <div class="list">
+          <div class="benefit"><span class="b-ic">__ICON_STAR__</span><div class="meta"><div class="t">Prioridad de compra</div><div class="s">Comprá 24 h antes que el público general</div></div><span class="pill solid" style="font-size:10.5px">Usar</span></div>
+          <div class="benefit"><span class="b-ic">__ICON_TAG__</span><div class="meta"><div class="t">15% de descuento</div><div class="s">En tu próxima entrada de los Storm</div></div><span class="pill solid" style="font-size:10.5px">Usar</span></div>
+          <div class="benefit"><span class="b-ic">__ICON_TICKET2__</span><div class="meta"><div class="t">Sorteo de palco</div><div class="s">Participás automáticamente esta temporada</div></div><span class="pill" style="font-size:10.5px">Activo</span></div>
+          <div class="benefit"><span class="b-ic">__ICON_PLAY__</span><div class="meta"><div class="t">Contenido exclusivo</div><div class="s">Detrás de escena del último partido</div></div><span class="pill" style="font-size:10.5px">Ver</span></div>
+        </div>
+        <div class="section-h">Próximo a desbloquear</div>
+        <div class="benefit locked"><span class="b-ic">__ICON_CROWN__</span><div class="meta"><div class="t">Acceso socio fundador</div><div class="s">Asistí a 2 partidos más para desbloquear</div></div><span class="pill grey" style="font-size:10.5px">2 más</span></div>
+        <div style="height:12px"></div>
+      </section>
+
+      <!-- ================= ORG: HOME ================= -->
+      <section class="screen" id="o-home">
+        <div class="topbar">
+          <div><div class="muted" style="font-size:12.5px">Panel organizador</div><div style="font-weight:800;font-size:18px;letter-spacing:-.3px">Liberty Dome</div></div>
+          <span class="live right"><span class="blip"></span> EN VIVO</span>
+        </div>
+
+        <div class="section-h" style="margin-top:0">Evento en curso</div>
+        <div class="event-hero" style="cursor:default">
+          <div class="art" style="height:150px">__ART_FIELD1__<div class="grad"></div>
+            <div class="toprow"><span class="pill">__ICON_DOT__ En juego · Q2</span></div>
+            <div class="ov"><div style="font-size:11.5px;color:#cdd2c5">Semana 14 · Liberty Dome</div>
+              <div class="teamrow" style="margin-top:6px">__HELM_STORM__<span class="nm">Kansas Storm</span><span class="muted" style="font-size:13px;margin:0 2px">vs</span>__HELM_BLAZE__<span class="nm">Phoenix Blaze</span></div></div>
+          </div>
+        </div>
+
+        <div class="capacity-card mt14">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700;font-size:14px">Capacidad en vivo</div>
+            <span class="live"><span class="blip"></span> Actualizando</span>
+          </div>
+          <div class="gauge">
+            <svg width="170" height="170" viewBox="0 0 170 170">
+              <circle cx="85" cy="85" r="72" fill="none" stroke="var(--surface-2)" stroke-width="14"/>
+              <circle id="gaugefg" cx="85" cy="85" r="72" fill="none" stroke="var(--accent)" stroke-width="14" stroke-linecap="round" transform="rotate(-90 85 85)" stroke-dasharray="452" stroke-dashoffset="452"/>
+            </svg>
+            <div class="num"><div class="big" id="g-pct">0%</div><div class="lbl">ocupación</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:16px">
+            <div class="stat" style="background:rgba(12,14,8,.4)"><div class="n accent" id="g-in">0</div><div class="l">Ingresaron</div></div>
+            <div class="stat" style="background:rgba(12,14,8,.4)"><div class="n" id="g-left">0</div><div class="l">Faltan</div></div>
+            <div class="stat" style="background:rgba(12,14,8,.4)"><div class="n">76.000</div><div class="l">Capacidad</div></div>
+          </div>
+        </div>
+
+        <div class="section-h">Ritmo de ingreso por sector</div>
+        <div class="list">
+          <div class="gate"><span class="g-ic">N</span><div class="g-meta"><div class="t">Lower Bowl</div><div class="s">28.400 / 34.000</div></div><div class="bar" style="width:90px"><i style="width:83%"></i></div></div>
+          <div class="gate"><span class="g-ic">S</span><div class="g-meta"><div class="t">Upper Deck</div><div class="s">22.100 / 30.000</div></div><div class="bar" style="width:90px"><i style="width:74%"></i></div></div>
+          <div class="gate"><span class="g-ic">V</span><div class="g-meta"><div class="t">Club & Suites</div><div class="s">9.300 / 12.000</div></div><div class="bar" style="width:90px"><i style="width:78%"></i></div></div>
+        </div>
+
+        <div class="section-h">Ingresos en tiempo real</div>
+        <div class="card" style="padding:14px 16px">
+          <div class="feed"><span class="fdot" style="background:var(--accent)"></span><div style="flex:1">Acceso validado · Lower Bowl</div><span class="muted" style="font-size:11.5px">hace 2 s</span></div>
+          <div class="feed"><span class="fdot" style="background:var(--accent)"></span><div style="flex:1">Acceso validado · Upper Deck</div><span class="muted" style="font-size:11.5px">hace 4 s</span></div>
+          <div class="feed"><span class="fdot" style="background:var(--coral)"></span><div style="flex:1">QR vencido · reintentar</div><span class="muted" style="font-size:11.5px">hace 7 s</span></div>
+          <div class="feed"><span class="fdot" style="background:var(--accent)"></span><div style="flex:1">Acceso validado · Club & Suites</div><span class="muted" style="font-size:11.5px">hace 9 s</span></div>
+        </div>
+
+        <button class="btn ghost mt14" onclick="go('o-scan')">__ICON_SCAN2__ Abrir control de acceso</button>
+        <div style="height:8px"></div>
+      </section>
+
+      <!-- ORG: SCAN (accessible from home) -->
+      <section class="screen noscroll" id="o-scan">
+        <div class="topbar"><div class="iconbtn" onclick="back('o-home')">←</div><h2>Control de acceso</h2><span class="pill grey right">Gate 4</span></div>
+        <p class="sub center" style="margin:2px 0 4px">Escaneá el QR dinámico del asistente</p>
+        <div class="scanbox"><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div><div class="beam"></div><div class="mini-qr">__QR_BIG__</div></div>
+        <div class="card mt14" style="padding:14px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:10px">Verificando en Polygon…</div>
+          <div id="ochecks">
+            <div class="info-line" data-chk style="padding:9px 0"><span class="k">El NFT existe</span><span class="v muted">…</span></div>
+            <div class="info-line" data-chk style="padding:9px 0"><span class="k">Corresponde al evento</span><span class="v muted">…</span></div>
+            <div class="info-line" data-chk style="padding:9px 0"><span class="k">Pertenece a la wallet</span><span class="v muted">…</span></div>
+            <div class="info-line" data-chk style="padding:9px 0"><span class="k">No fue usado antes</span><span class="v muted">…</span></div>
+            <div class="info-line" data-chk style="padding:9px 0"><span class="k">QR vigente</span><span class="v muted">…</span></div>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn" id="oscanbtn" onclick="runOScan()">Escanear entrada</button>
+        <div class="success" id="osuccess">
+          <div class="big">__ICON_CHK_BIG__</div><h2>Ingreso habilitado</h2><p>Storm vs. Blaze · Lower Bowl · Sec. 124</p>
+          <button class="btn" style="background:#0c0f06;color:var(--accent);width:auto;padding:13px 26px" onclick="nextScan()">Siguiente asistente</button>
+        </div>
+      </section>
+
+      <!-- ================= ORG: MY EVENTS ================= -->
+      <section class="screen" id="o-events">
+        <div class="topbar"><h2>Mis eventos</h2></div>
+
+        <div class="add-ev" onclick="toast('Nuevo evento (demo)')">__ICON_PLUS__ Agregar evento</div>
+
+        <div class="section-h">En curso</div>
+        <div class="list">
+          <div class="ev" onclick="go('o-event')">
+            <div class="evthumb">__ART_FIELD1__</div>
+            <div class="meta"><div class="t">Storm vs. Blaze</div><div class="s">Hoy · 18:30 · Liberty Dome</div></div>
+            <span class="live"><span class="blip"></span></span>
+          </div>
+        </div>
+
+        <div class="section-h">Próximos</div>
+        <div class="list">
+          <div class="ev" onclick="go('o-event')">
+            <div class="evthumb">__ART_FIELD3__</div>
+            <div class="meta"><div class="t">Storm vs. Summit</div><div class="s">Dom 21 · Semana 15 · 16:00</div></div>
+            <span class="pill blue" style="font-size:10px">Venta abierta</span>
+          </div>
+          <div class="ev" onclick="go('o-event')">
+            <div class="evthumb">__ART_FIELD2__</div>
+            <div class="meta"><div class="t">Storm vs. Monarchs</div><div class="s">Dom 28 · Semana 16 · 18:30</div></div>
+            <span class="pill grey" style="font-size:10px">Programado</span>
+          </div>
+        </div>
+
+        <div class="section-h">Pasados</div>
+        <div class="list">
+          <div class="ev" style="opacity:.78" onclick="toast('Resumen del evento (demo)')">
+            <div class="evthumb">__ART_FIELD4__</div>
+            <div class="meta"><div class="t">Storm vs. Tide</div><div class="s">Semana 13 · 71.200 asistentes</div></div>
+            <span class="pill grey" style="font-size:10px">Finalizado</span>
+          </div>
+          <div class="ev" style="opacity:.78" onclick="toast('Resumen del evento (demo)')">
+            <div class="evthumb">__ART_FIELD3__</div>
+            <div class="meta"><div class="t">Storm vs. Blaze</div><div class="s">Semana 11 · 74.800 asistentes</div></div>
+            <span class="pill grey" style="font-size:10px">Finalizado</span>
+          </div>
+        </div>
+        <div style="height:8px"></div>
+      </section>
+
+      <!-- ================= FAN: ONBOARDING (nuevo usuario) ================= -->
+      <section class="screen noscroll" id="s-onboard">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-role')">←</div><div class="brand"><span class="mark">__MARK__</span> FanPass</div></div>
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div id="ob-step1">
+            <div class="event-hero" style="cursor:default;margin-top:4px"><div class="art" style="height:150px">__ART_STADIUM__<div class="grad"></div></div></div>
+            <div class="eyebrow mt14">Bienvenido</div>
+            <h1 class="title">Creá tu cuenta en <span class="hl">un toque</span></h1>
+            <p class="sub">Sin contraseñas ni cripto. Generamos una wallet segura por vos, sin que tengas que entender nada de blockchain.</p>
+            <div class="card mt20" style="padding:15px">
+              <div style="display:flex;align-items:center;gap:12px"><span class="ico" style="background:rgba(205,255,58,.12)">__ICON_SHIELD2__</span><div><div style="font-weight:700;font-size:13.5px">Wallet integrada y verificada</div><div class="muted" style="font-size:12px">Tus entradas y cards quedan solo tuyas.</div></div></div>
+            </div>
+          </div>
+          <div id="ob-step2" class="hidden center" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div class="ring" style="width:96px;height:96px;margin-bottom:8px"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle id="ob-ring" cx="48" cy="48" r="40" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251" transform="rotate(-90 48 48)"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">__ICON_WALLET__</div></div>
+            <div style="font-weight:800;font-size:18px" id="ob-status">Creando tu wallet…</div>
+            <div class="muted mono mt8" id="ob-addr" style="font-size:13px">generando dirección…</div>
+          </div>
+        </div>
+        <button class="btn" id="ob-btn" onclick="onboardNext()">Crear mi cuenta</button>
+        <p class="center muted mt8" style="font-size:11px">Al continuar aceptás los términos del servicio</p>
+        <div style="height:6px"></div>
+      </section>
+
+      <!-- ================= FAN: COMPRA PRIMARIA ================= -->
+      <section class="screen" id="s-buy">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-home')">←</div><h2>Comprar entrada</h2></div>
+        <div class="event-hero" style="cursor:default">
+          <div class="art" style="height:140px">__ART_FIELD1__<div class="grad"></div>
+            <div class="ov"><span class="pill" style="align-self:flex-start">__ICON_DOT__ Dom · 18:30</span>
+              <div class="teamrow" style="margin-top:6px">__HELM_STORM__<span class="nm">Storm</span><span class="muted" style="font-size:12px">vs</span>__HELM_BLAZE__<span class="nm">Blaze</span></div>
+              <div class="meta">Semana 14 · Liberty Dome</div></div>
+          </div>
+        </div>
+        <div class="section-h">Elegí tu sector</div>
+        <div class="sectors">
+          <div class="sector sel" data-price="8.500" data-name="Lower Bowl" onclick="pickSector(this)"><span class="dot" style="background:var(--accent)"></span><div><div style="font-weight:700;font-size:14px">Lower Bowl</div><div class="muted" style="font-size:11.5px">Nivel de campo</div></div><span class="price">$8.500</span><span class="check">__ICON_CHK__</span></div>
+          <div class="sector" data-price="5.200" data-name="Upper Deck" onclick="pickSector(this)"><span class="dot" style="background:var(--blue)"></span><div><div style="font-weight:700;font-size:14px">Upper Deck</div><div class="muted" style="font-size:11.5px">Vista panorámica</div></div><span class="price">$5.200</span><span class="check">__ICON_CHK__</span></div>
+          <div class="sector" data-price="14.000" data-name="Club & Suites" onclick="pickSector(this)"><span class="dot" style="background:var(--amber)"></span><div><div style="font-weight:700;font-size:14px">Club & Suites</div><div class="muted" style="font-size:11.5px">Premium + catering</div></div><span class="price">$14.000</span><span class="check">__ICON_CHK__</span></div>
+        </div>
+        <div class="card mt20" style="padding:15px">
+          <div class="info-line"><span class="k">Entrada</span><span class="v" id="buy-sector">Lower Bowl</span></div>
+          <div class="info-line"><span class="k">Precio</span><span class="v" id="buy-price">$8.500</span></div>
+          <div class="info-line"><span class="k">Se emite como</span><span class="v accent">NFT · Polygon</span></div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn mt14" onclick="go('s-pay')">__ICON_LOCK__ Continuar al pago</button>
+        <div style="height:8px"></div>
+      </section>
+
+      <!-- FAN: PAGO / CONFIRMACIÓN -->
+      <section class="screen" id="s-pay">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-buy')">←</div><h2>Pago</h2></div>
+        <div class="section-h" style="margin-top:4px">Resumen</div>
+        <div class="card" style="padding:16px">
+          <div class="info-line"><span class="k">Storm vs. Blaze</span><span class="v" id="pay-sector">Lower Bowl</span></div>
+          <div class="info-line"><span class="k">Semana 14 · Liberty Dome</span><span class="v" id="pay-price">$8.500</span></div>
+          <div class="info-line"><span class="k">Cargo por servicio</span><span class="v">$450</span></div>
+          <div class="info-line"><span class="k">Total</span><span class="v accent" id="pay-total">$8.950</span></div>
+        </div>
+        <div class="section-h">Medio de pago</div>
+        <div class="sectors">
+          <div class="sector sel" onclick="pickPay(this)"><span class="ico" style="width:34px;height:34px;border-radius:8px">__ICON_CARD2__</span><div><div style="font-weight:700;font-size:14px">Visa ···· 6411</div><div class="muted" style="font-size:11.5px">Tarjeta guardada</div></div><span class="check" style="margin-left:auto">__ICON_CHK__</span></div>
+          <div class="sector" onclick="pickPay(this)"><span class="ico" style="width:34px;height:34px;border-radius:8px">__ICON_PLUS2__</span><div><div style="font-weight:700;font-size:14px">Otro medio</div><div class="muted" style="font-size:11.5px">Tarjeta o billetera</div></div><span class="check" style="margin-left:auto">__ICON_CHK__</span></div>
+        </div>
+        <div class="card mt20" style="padding:13px;display:flex;gap:10px;align-items:center;background:var(--surface-2)">
+          <span class="ico" style="background:rgba(205,255,58,.12)">__ICON_SHIELD2__</span>
+          <div class="muted" style="font-size:11.5px;line-height:1.4">Pagás como siempre. Por detrás, tu entrada se emite como NFT en tu wallet, sin pasos extra.</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn mt14" id="pay-btn" onclick="runPay()">__ICON_LOCK__ Pagar $8.950</button>
+        <div class="success" id="paysuccess">
+          <div class="big">__ICON_CHK_BIG__</div><h2>¡Entrada emitida!</h2><p>Ya está en tu wallet como NFT. La encontrás en tu colección.</p>
+          <button class="btn" style="background:#0c0f06;color:var(--accent);width:auto;padding:13px 26px" onclick="afterPay()">Ver mi entrada</button>
+        </div>
+        <div style="height:6px"></div>
+      </section>
+
+      <!-- ================= ORG: DETALLE DE EVENTO ================= -->
+      <section class="screen" id="o-event">
+        <div class="topbar"><div class="iconbtn" onclick="back('o-events')">←</div><h2>Detalle del evento</h2></div>
+        <div class="event-hero" style="cursor:default">
+          <div class="art" style="height:140px">__ART_FIELD1__<div class="grad"></div>
+            <div class="toprow"><span class="pill grey" style="color:var(--muted)">Semana 14</span></div>
+            <div class="ov"><div class="teamrow">__HELM_STORM__<span class="nm">Kansas Storm</span><span class="muted" style="font-size:13px">vs</span>__HELM_BLAZE__<span class="nm">Phoenix Blaze</span></div><div class="meta">Dom 18:30 · Liberty Dome</div></div>
+          </div>
+        </div>
+        <div class="stat-row mt14">
+          <div class="stat"><div class="n">61.4k</div><div class="l">Entradas vendidas</div></div>
+          <div class="stat"><div class="n accent">81%</div><div class="l">Del aforo</div></div>
+          <div class="stat"><div class="n">$2.1M</div><div class="l">Recaudación</div></div>
+        </div>
+        <div class="section-h">Venta por sector</div>
+        <div class="list">
+          <div class="gate"><span class="g-ic">L</span><div class="g-meta"><div class="t">Lower Bowl</div><div class="s">31.300 / 34.000 · $8.500</div></div><div class="bar" style="width:80px"><i style="width:92%"></i></div></div>
+          <div class="gate"><span class="g-ic">U</span><div class="g-meta"><div class="t">Upper Deck</div><div class="s">22.800 / 30.000 · $5.200</div></div><div class="bar" style="width:80px"><i style="width:76%"></i></div></div>
+          <div class="gate"><span class="g-ic">C</span><div class="g-meta"><div class="t">Club & Suites</div><div class="s">7.300 / 12.000 · $14.000</div></div><div class="bar" style="width:80px"><i style="width:61%"></i></div></div>
+        </div>
+        <div class="section-h">Configuración Web3</div>
+        <div class="card" style="padding:16px">
+          <div class="info-line"><span class="k">Emisión</span><span class="v accent">NFT · ERC-721</span></div>
+          <div class="info-line"><span class="k">Red</span><span class="v">Polygon PoS</span></div>
+          <div class="info-line"><span class="k">Reventa máxima</span><span class="v">+20% sobre original</span></div>
+          <div class="info-line"><span class="k">Royalty por reventa</span><span class="v">7% al club</span></div>
+          <div class="info-line"><span class="k">Card coleccionable</span><span class="v">Activada</span></div>
+        </div>
+        <button class="btn ghost mt14" onclick="go('o-home')">__ICON_SCAN2__ Ver capacidad en vivo</button>
+        <div style="height:10px"></div>
+      </section>
+
+    </div>
+
+    <div class="toast" id="toast">__ICON_CHK_SM__ <span id="toast-txt">Listo</span></div>
+
+    <nav class="tabbar" id="tabbar-fan" style="display:none">
+      <div class="tab" data-tab="s-home" onclick="go('s-home')">__TAB_HOME__<span>Inicio</span></div>
+      <div class="tab" data-tab="s-market" onclick="go('s-market')">__TAB_SWAP__<span>Market</span></div>
+      <div class="tab" data-tab="s-collection" onclick="go('s-collection')">__TAB_CARD__<span>Colección</span></div>
+      <div class="tab" data-tab="s-benefits" onclick="go('s-benefits')">__TAB_GIFT__<span>Beneficios</span></div>
+    </nav>
+
+    <nav class="tabbar" id="tabbar-org" style="display:none">
+      <div class="tab" data-tab="o-home" onclick="go('o-home')">__TAB_CHART__<span>Home</span></div>
+      <div class="tab" data-tab="o-events" onclick="go('o-events')">__TAB_TICKET__<span>Mis eventos</span></div>
+      <div class="tab" data-tab="s-role" onclick="go('s-role')">__TAB_SWAP__<span>Salir</span></div>
+    </nav>
+
+  </div>
+</div>
+
+<script>
+  function tab(inner){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`}
+
+  /* ---- American football field illustration ---- */
+  function fieldBG(c1,c2){const id='f'+c1.replace('#','');return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="400" height="220" fill="url(#${id})"/>`}
+  function fieldLines(){let l='';for(let i=1;i<8;i++){l+=`<line x1="${i*50}" y1="120" x2="${i*50}" y2="220" stroke="rgba(255,255,255,.12)" stroke-width="2"/>`;}
+    return `<g>${l}<rect x="0" y="120" width="400" height="6" fill="rgba(255,255,255,.15)"/><ellipse cx="200" cy="230" rx="260" ry="50" fill="rgba(255,255,255,.04)"/></g>`}
+  // american-football player: helmet w/ facemask, shoulder pads, throwing pose
+  function afPlayer(x,col,flip){const s=flip?-1:1;return `<g transform="translate(${x},0) scale(${s},1)">
+    <g fill="${col}">
+      <path d="M-14 92 Q0 84 16 92 L14 120 Q0 116 -12 120 Z"/>
+      <circle cx="0" cy="74" r="13"/>
+      <path d="M-13 74 a13 13 0 0 1 26 0 l-4 0 a9 9 0 0 0 -18 0 Z" fill="#0c0f06" opacity=".55"/>
+      <path d="M14 96 L34 80 Q40 84 36 91 L18 106 Z"/>
+      <circle cx="36" cy="80" r="6"/>
+      <path d="M-12 98 L-30 112 Q-35 107 -31 101 L-14 90 Z"/>
+      <path d="M2 118 L16 150 Q11 155 5 151 L-4 124 Z"/>
+      <path d="M-6 120 L-12 154 Q-18 153 -17 147 L-12 118 Z"/>
+    </g>
+    <ellipse cx="40" cy="76" rx="8" ry="5" fill="#8a5a2b" transform="rotate(20 40 76)"/>
+  </g>`}
+  function scene(c1,c2,accent,v){let p='';
+    if(v===1)p=afPlayer(140,accent)+afPlayer(255,'#11140d',true);
+    else if(v===2)p=afPlayer(165,accent,true)+afPlayer(285,'#11140d');
+    else if(v===3)p=afPlayer(200,accent);
+    else p=afPlayer(120,accent)+afPlayer(280,'#11140d',true);
+    return `<svg viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">${fieldBG(c1,c2)}${fieldLines()}<g opacity=".06" fill="#fff"><circle cx="340" cy="40" r="55"/></g>${p}</svg>`}
+  function stadium(){return `<svg viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">${fieldBG('#1c2a16','#0f160a')}<ellipse cx="200" cy="150" rx="155" ry="58" fill="none" stroke="rgba(205,255,58,.22)" stroke-width="3"/><ellipse cx="200" cy="150" rx="105" ry="36" fill="rgba(205,255,58,.05)"/><rect x="150" y="138" width="100" height="24" rx="3" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2"/><g fill="rgba(255,255,255,.5)"><circle cx="60" cy="70" r="2"/><circle cx="130" cy="48" r="2"/><circle cx="300" cy="54" r="2"/><circle cx="350" cy="88" r="2"/><circle cx="200" cy="36" r="2.4" fill="#CDFF3A"/></g></svg>`}
+  function orgScene(){return `<svg viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">${fieldBG('#16202b','#0c1118')}<g stroke="rgba(91,141,239,.3)" stroke-width="2" fill="none"><rect x="50" y="55" width="300" height="115" rx="10"/><path d="M50 95 H350 M120 55 V170 M280 55 V170"/></g><g fill="rgba(255,255,255,.5)"><circle cx="85" cy="128" r="6"/><circle cx="160" cy="128" r="6"/><circle cx="235" cy="128" r="6"/><circle cx="310" cy="128" r="6" fill="#CDFF3A"/></g><text x="200" y="200" fill="rgba(255,255,255,.25)" font-size="13" text-anchor="middle" font-family="monospace">76.000 · LIVE</text></svg>`}
+
+  /* ---- helmet glyph ---- */
+  function helmet(col){return `<svg class="helmet" viewBox="0 0 32 32" fill="none"><path d="M7 17 a10 10 0 0 1 20 0 l0 3 -7 0 a6 6 0 0 0 -12 0 l-1 0 Z" fill="${col}"/><path d="M8 20 l11 0 a5 5 0 0 1 5 5 l-3 0 a4 4 0 0 0 -4 -4 l-9 0 Z" fill="#0c0f06" opacity=".5"/><circle cx="16" cy="14" r="2" fill="#fff" opacity=".5"/></svg>`}
+
+  /* ---- collectible player card (inspired by trading-card art, fully original) ---- */
+  function pcard(opts){
+    const {c1,c2,accent,flame1,flame2,rarity,rcol,player,team,pos,num,big}=opts;
+    const uid=c1.replace('#','')+num;
+    const defs=`<defs>
+      <linearGradient id="bg${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+      <linearGradient id="fl${uid}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${flame1}"/><stop offset=".55" stop-color="${flame2}"/><stop offset="1" stop-color="#ffe28a"/></linearGradient>
+      <linearGradient id="sheen${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".44" stop-color="#fff" stop-opacity=".16"/><stop offset=".52" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <radialGradient id="glow${uid}" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="${accent}" stop-opacity=".35"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient>
+    </defs>`;
+    // stylized flames rising behind the player
+    let flames='';
+    const fseed=[ [60,'.9',1],[130,'1',1.25],[200,'.85',.95],[95,'.7',.7],[170,'.75',.8] ];
+    fseed.forEach(([x,op,sc])=>{flames+=`<path transform="translate(${x},250) scale(${sc})" opacity="${op}" fill="url(#fl${uid})"
+      d="M0 0 C-22 -40 -10 -58 -16 -92 C2 -70 6 -86 10 -112 C16 -86 30 -74 22 -40 C40 -60 36 -34 30 -16 C46 -28 40 4 24 14 C30 -6 14 -8 8 -28 C6 -8 -8 -2 -14 12 C-8 -4 -20 -8 -22 -2 Z"/>`;});
+    // american-football player in passing pose (original illustration)
+    const player_svg=`<g transform="translate(132,${big?188:188}) scale(${big?2.15:2.15})">
+      <!-- back leg -->
+      <path d="M-2 60 L-16 96 -8 100 4 64 Z" fill="${c2}"/>
+      <path d="M-16 96 L-22 100 -8 104 -8 100 Z" fill="#1a1a1a"/>
+      <!-- front leg -->
+      <path d="M8 60 L18 98 26 96 14 60 Z" fill="${c1}"/>
+      <path d="M18 98 L24 102 30 98 26 96 Z" fill="#1a1a1a"/>
+      <!-- jersey torso -->
+      <path d="M-18 22 Q0 14 18 22 L15 62 Q0 58 -15 62 Z" fill="${c1}"/>
+      <path d="M-18 22 Q0 14 18 22 L17 34 Q0 27 -17 34 Z" fill="#ffffff" opacity=".25"/>
+      <!-- number on jersey -->
+      <text x="0" y="50" fill="#fff" font-family="Arial" font-weight="800" font-size="16" text-anchor="middle" opacity=".9">${num}</text>
+      <!-- shoulder pads -->
+      <path d="M-22 24 Q-18 16 -8 18 L-10 28 Q-18 27 -22 32 Z" fill="${c1}"/>
+      <path d="M22 24 Q18 16 8 18 L10 28 Q18 27 22 32 Z" fill="${c1}"/>
+      <!-- throwing arm up holding ball -->
+      <path d="M16 26 L34 8 Q40 12 36 20 L20 38 Z" fill="${c1}"/>
+      <ellipse cx="42" cy="6" rx="10" ry="6.5" fill="#8a4b22" transform="rotate(24 42 6)"/>
+      <path d="M36 2 L48 10" stroke="#fff" stroke-width="1.4" opacity=".7"/>
+      <!-- off arm -->
+      <path d="M-16 28 L-34 40 Q-38 34 -33 29 L-18 20 Z" fill="${c1}"/>
+      <!-- helmet -->
+      <g transform="translate(0,2)">
+        <path d="M-13 6 a13 13 0 0 1 26 0 q0 9 -4 13 l-18 0 q-4 -4 -4 -13 Z" fill="${c2}"/>
+        <path d="M-13 8 a13 13 0 0 1 26 0 l-3 0 a10 10 0 0 0 -20 0 Z" fill="#fff" opacity=".18"/>
+        <!-- facemask -->
+        <path d="M-9 16 q9 5 18 1 M-9 12 q9 5 18 1" stroke="#cfd4dc" stroke-width="1.6" fill="none"/>
+        <path d="M9 6 q5 6 0 14" stroke="#cfd4dc" stroke-width="1.6" fill="none"/>
+        <circle cx="0" cy="4" r="2.4" fill="${accent}"/>
+      </g>
+    </g>`;
+    // border ribbon text (team repeated) like the reference frame
+    const ribbon=`${pos} // ${team.toUpperCase()} // ${pos} // ${team.toUpperCase()} // ${pos} //`;
+    const big2=big?1:0;
+    return `<svg class="holo" viewBox="0 0 264 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      ${defs}
+      <rect width="264" height="400" fill="url(#bg${uid})"/>
+      <rect width="264" height="400" fill="url(#glow${uid})"/>
+      ${flames}
+      ${player_svg}
+      <rect x="0" y="0" width="264" height="400" fill="url(#sheen${uid})"/>
+      <!-- outer + inner frame -->
+      <rect x="9" y="9" width="246" height="382" rx="14" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="2.5"/>
+      <rect x="20" y="20" width="224" height="360" rx="9" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="1"/>
+      <!-- corner neon accents -->
+      <path d="M24 16 L${big?78:70} 16 M16 24 L16 ${big?78:70}" stroke="${accent}" stroke-width="3"/>
+      <path d="M240 384 L${big?186:194} 384 M248 376 L248 ${big?322:330}" stroke="${accent}" stroke-width="3"/>
+      <!-- ribbon text top + side -->
+      <text x="132" y="32" fill="#fff" font-family="Arial" font-weight="700" font-size="7.5" letter-spacing="1" text-anchor="middle" opacity=".7">${ribbon}</text>
+      <text x="132" y="374" fill="#fff" font-family="Arial" font-weight="700" font-size="7.5" letter-spacing="1" text-anchor="middle" opacity=".7">${pos} // ${team.toUpperCase()} // ${num}</text>
+      <!-- big number top-left -->
+      <text x="${big?34:30}" y="${big?66:58}" fill="#fff" font-family="Arial" font-weight="800" font-size="${big?30:22}" opacity=".92">${num}</text>
+      <!-- signature -->
+      <text transform="translate(${big?60:54},${big?300:300}) rotate(-10)" fill="#fff" font-family="'Brush Script MT',cursive" font-size="${big?30:18}" opacity=".92">${player.split(' ')[1]||player}</text>
+      <!-- name plate -->
+      <g>
+        <rect x="20" y="${big?330:332}" width="224" height="${big?34:30}" rx="6" fill="rgba(8,10,6,.55)"/>
+        <text x="34" y="${big?353:353}" fill="#fff" font-family="Arial" font-weight="800" font-size="${big?17:14}" letter-spacing="1">${player.toUpperCase()}</text>
+      </g>
+    </svg>
+    <span class="rarity" style="background:${rcol};color:#fff">${rarity}</span>`;
+  }
+
+  const cards = {
+    legendary:{c1:'#1c3a6e',c2:'#0a1830',accent:'#7fd4ff',flame1:'#ff6a1f',flame2:'#ffb347',rarity:'Legendary',rcol:'linear-gradient(90deg,#E0457B,#ff8db5)',player:'Darnell Cole',pos:'QB',team:'Kansas Storm',num:'12'},
+    epic:{c1:'#5a2b8c',c2:'#1c0e34',accent:'#c89bff',flame1:'#b13bff',flame2:'#ff7ae0',rarity:'Epic',rcol:'linear-gradient(90deg,#6a3bd6,#a385ff)',player:'Rico Vance',pos:'WR',team:'Phoenix Blaze',num:'08'},
+    rare:{c1:'#1f6e8c',c2:'#0a2430',accent:'#7fffd4',flame1:'#1fd4a8',flame2:'#5bffd0',rarity:'Rare',rcol:'linear-gradient(90deg,#2f7fd6,#7db8ff)',player:'Marcus Hale',pos:'RB',team:'Denver Summit',num:'24'},
+    common:{c1:'#3a4031',c2:'#15170f',accent:'#CDFF3A',flame1:'#9fc72e',flame2:'#e0ff7a',rarity:'Common',rcol:'#2E322A',player:'Jaylen Frost',pos:'TE',team:'Miami Tide',num:'31'},
+  };
+
+  const LIB = {
+    __MARK__:`<svg viewBox="0 0 32 32" fill="none"><path d="M16 2v28M6 6l20 20M26 6 6 26M2 16h28" stroke="#CDFF3A" stroke-width="3.4" stroke-linecap="round"/></svg>`,
+    __ICON_ARROW__:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#CDFF3A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_WALLET__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#CDFF3A" stroke-width="2"/><path d="M3 10h18" stroke="#CDFF3A" stroke-width="2"/><circle cx="17" cy="14" r="1.4" fill="#CDFF3A"/></svg>`,
+    __ICON_BELL__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round"/></svg>`,
+    __ICON_SHIELD__:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Z" stroke="#CDFF3A" stroke-width="2" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_SHIELD2__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Z" stroke="#CDFF3A" stroke-width="2" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_DOT__:`<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#CDFF3A"/></svg>`,
+    __ICON_PLUS__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#CDFF3A" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+    __ICON_SWAP__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_CARD__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="3" stroke="#CDFF3A" stroke-width="2"/><circle cx="12" cy="9" r="2.4" stroke="#CDFF3A" stroke-width="2"/><path d="M7 18c1-3 3-4 5-4s4 1 5 4" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round"/></svg>`,
+    __ICON_CARD2__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="#CDFF3A" stroke-width="2"/><path d="M3 10h18" stroke="#CDFF3A" stroke-width="2"/></svg>`,
+    __ICON_PLUS2__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#CDFF3A" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+    __ICON_CHK__:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="#0c0f06" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_TICKET2__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z" stroke="#CDFF3A" stroke-width="2"/><path d="M14 6v12" stroke="#CDFF3A" stroke-width="2" stroke-dasharray="2 2"/></svg>`,
+    __ICON_GIFT__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="8" width="18" height="13" rx="2" stroke="#CDFF3A" stroke-width="2"/><path d="M3 12h18M12 8v13M12 8S10 3 7.5 4 9.5 8 12 8Zm0 0s2-5 4.5-4-1.5 4-4.5 4Z" stroke="#CDFF3A" stroke-width="2" stroke-linejoin="round"/></svg>`,
+    __ICON_SHARE__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3v12M8 7l4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" stroke="#F4F5F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_SEARCH__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#F4F5F0" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="#F4F5F0" stroke-width="2" stroke-linecap="round"/></svg>`,
+    __ICON_LOCK__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="#0c0f06" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#0c0f06" stroke-width="2"/></svg>`,
+    __ICON_SCAN2__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M4 12h16" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_CHK_SM__:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="#0c0f06" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_CHK_BIG__:`<svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="#CDFF3A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    __ICON_STAR__:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6L12 17l-5.4 2.6 1-6L3.3 9.4l6-.9L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+    __ICON_TAG__:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>`,
+    __ICON_PLAY__:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="m10 9 5 3-5 3V9Z" fill="currentColor"/></svg>`,
+    __ICON_CROWN__:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 7l4 4 5-6 5 6 4-4v11H3V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+    __TAB_HOME__:tab(`<path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>`),
+    __TAB_SWAP__:tab(`<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>`),
+    __TAB_CARD__:tab(`<rect x="4" y="3" width="16" height="18" rx="3"/><circle cx="12" cy="9" r="2.4"/><path d="M7 18c1-3 3-4 5-4s4 1 5 4"/>`),
+    __TAB_GIFT__:tab(`<rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 12h18M12 8v13"/>`),
+    __TAB_CHART__:tab(`<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>`),
+    __TAB_TICKET__:tab(`<path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z"/>`),
+  };
+
+  function qr(seed){const n=21,c=10;let s=seed*9301+49297;const rnd=()=>{s=(s*9301+49297)%233280;return s/233280;};let cells='';
+    const finder=(x,y)=>{cells+=`<rect x="${x}" y="${y}" width="${c*7}" height="${c}"/><rect x="${x}" y="${y+c*6}" width="${c*7}" height="${c}"/><rect x="${x}" y="${y}" width="${c}" height="${c*7}"/><rect x="${x+c*6}" y="${y}" width="${c}" height="${c*7}"/><rect x="${x+c*2}" y="${y+c*2}" width="${c*3}" height="${c*3}"/>`};
+    for(let y=0;y<n;y++)for(let x=0;x<n;x++){if((x<8&&y<8)||(x>n-8&&y<8)||(x<8&&y>n-8))continue;if(rnd()>0.55)cells+=`<rect x="${x*c}" y="${y*c}" width="${c}" height="${c}"/>`;}
+    finder(0,0);finder((n-7)*c,0);finder(0,(n-7)*c);return `<svg class="qr" viewBox="0 0 ${n*c} ${n*c}">${cells}</svg>`;}
+
+  let html=document.body.innerHTML;
+  html=html.split('__ART_FIELD1__').join(scene('#2a3a1e','#10160b','#CDFF3A',1))
+           .split('__ART_FIELD2__').join(scene('#3a1e2e','#16080f','#E0457B',2))
+           .split('__ART_FIELD3__').join(scene('#1c2c3a','#0c1118','#5B8DEF',3))
+           .split('__ART_FIELD4__').join(scene('#33203a','#140c18','#C061D6',4))
+           .split('__ART_STADIUM__').join(stadium())
+           .split('__ART_ORGSCENE__').join(orgScene())
+           .split('__HELM_STORM__').join(helmet('#CDFF3A'))
+           .split('__HELM_BLAZE__').join(helmet('#E0457B'))
+           .split('__QR_BIG__').join(qr(7));
+  for(const k in LIB){html=html.split(k).join(LIB[k]);}
+  document.body.innerHTML=html;
+
+  const orgScreens=['o-home','o-events','o-scan','o-event'];
+  function showTabbar(id){
+    const fan=document.getElementById('tabbar-fan'),org=document.getElementById('tabbar-org');
+    if(id==='s-role'){fan.style.display='none';org.style.display='none';return;}
+    const isOrg=orgScreens.includes(id);
+    fan.style.display=isOrg?'none':'flex';org.style.display=isOrg?'flex':'none';
+    (isOrg?org:fan).querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));
+  }
+  function go(id){const cur=document.querySelector('.screen.active'),next=document.getElementById(id);if(!next||next===cur)return;
+    if(cur)cur.classList.remove('active','back');next.classList.remove('back');next.classList.add('active');next.scrollTop=0;showTabbar(id);
+    if(id==='s-ticket')startCountdown();if(id==='o-scan')resetOScan();if(id==='o-home')animateGauge();}
+  function back(id){const cur=document.querySelector('.screen.active'),prev=document.getElementById(id);if(cur)cur.classList.add('back');
+    setTimeout(()=>{if(cur)cur.classList.remove('active','back');prev.classList.add('active');prev.scrollTop=0;showTabbar(id);},10);}
+  function enterFan(){go('s-home');}
+  function enterOrg(){go('o-home');}
+
+  function pickSector(el){const c=el.closest('.sectors');c.querySelectorAll('.sector').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');
+    if(el.dataset.name){document.getElementById('buy-sector').textContent=el.dataset.name;document.getElementById('buy-price').textContent='$'+el.dataset.price;
+      document.getElementById('pay-sector').textContent=el.dataset.name;
+      const base=parseFloat(el.dataset.price.replace('.',''));const tot=base+450;
+      document.getElementById('pay-price').textContent='$'+el.dataset.price;
+      document.getElementById('pay-total').textContent='$'+tot.toLocaleString('es');
+      document.getElementById('pay-btn').innerHTML=document.getElementById('pay-btn').innerHTML.replace(/Pagar \$[\d.]+/,'Pagar $'+tot.toLocaleString('es'));}}
+  function pickPay(el){el.closest('.sectors').querySelectorAll('.sector').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
+  function runPay(){const b=document.getElementById('pay-btn');b.textContent='Procesando…';b.disabled=true;b.style.opacity=.7;
+    setTimeout(()=>document.getElementById('paysuccess').classList.add('show'),900);}
+  function afterPay(){document.getElementById('paysuccess').classList.remove('show');const b=document.getElementById('pay-btn');b.disabled=false;b.style.opacity=1;b.innerHTML=b.innerHTML.replace('Procesando…','');go('s-ticket');toast('Entrada agregada a tu colección');}
+
+  let obStep=1;
+  function onboardNext(){
+    if(obStep===1){obStep=2;document.getElementById('ob-step1').classList.add('hidden');document.getElementById('ob-step2').classList.remove('hidden');
+      const btn=document.getElementById('ob-btn');btn.textContent='Creando…';btn.disabled=true;btn.style.opacity=.6;
+      const ring=document.getElementById('ob-ring');ring.style.transition='stroke-dashoffset 1.6s ease';requestAnimationFrame(()=>ring.style.strokeDashoffset='0');
+      setTimeout(()=>{document.getElementById('ob-status').textContent='¡Wallet lista!';document.getElementById('ob-addr').textContent='0x3f…a91c';
+        btn.textContent='Empezar a usar FanPass';btn.disabled=false;btn.style.opacity=1;obStep=3;},1800);
+    } else {go('s-home');toast('¡Bienvenido a FanPass!');obStep=1;
+      document.getElementById('ob-step1').classList.remove('hidden');document.getElementById('ob-step2').classList.add('hidden');
+      document.getElementById('ob-status').textContent='Creando tu wallet…';document.getElementById('ob-addr').textContent='generando dirección…';
+      const b=document.getElementById('ob-btn');b.textContent='Crear mi cuenta';const r=document.getElementById('ob-ring');r.style.transition='none';r.style.strokeDashoffset='251';}
+  }
+  function mktTab(btn,which){document.querySelectorAll('#mkt-seg button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+    document.getElementById('mkt-buy').classList.toggle('hidden',which!=='buy');document.getElementById('mkt-sell').classList.toggle('hidden',which!=='sell');}
+  function collTab(btn,which){document.querySelectorAll('#coll-seg button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+    document.getElementById('coll-cards').classList.toggle('hidden',which!=='cards');document.getElementById('coll-tickets').classList.toggle('hidden',which!=='tickets');}
+  let cdTimer=null;
+  function startCountdown(){clearInterval(cdTimer);let t=30;const circ=113;const num=document.getElementById('cd'),ring=document.getElementById('ringfg');
+    const set=()=>{num.textContent=t;ring.style.strokeDashoffset=circ*(1-t/30);};set();cdTimer=setInterval(()=>{t--;if(t<0)t=30;set();},1000);}
+  function resetOScan(){document.getElementById('osuccess').classList.remove('show');const b=document.getElementById('oscanbtn');b.textContent='Escanear entrada';b.disabled=false;b.style.opacity=1;
+    document.querySelectorAll('#ochecks [data-chk] .v').forEach(v=>{v.textContent='…';v.className='v muted';v.style.fontWeight='';});}
+  function runOScan(){const b=document.getElementById('oscanbtn');b.textContent='Verificando…';b.disabled=true;b.style.opacity=.7;
+    const rows=document.querySelectorAll('#ochecks [data-chk] .v');
+    rows.forEach((v,i)=>setTimeout(()=>{v.innerHTML='✓';v.className='v accent';v.style.fontWeight='800';
+      if(i===rows.length-1)setTimeout(()=>document.getElementById('osuccess').classList.add('show'),300);},300*(i+1)));}
+  function nextScan(){resetOScan();toast('Listo para el siguiente');}
+  function animateGauge(){const fg=document.getElementById('gaugefg'),pct=document.getElementById('g-pct'),gin=document.getElementById('g-in'),gleft=document.getElementById('g-left');
+    const target=0.79,total=76000,circ=452;let p=0;clearInterval(window._g);
+    window._g=setInterval(()=>{p+=0.02;if(p>=target){p=target;clearInterval(window._g);}fg.style.strokeDashoffset=circ*(1-p);pct.textContent=Math.round(p*100)+'%';
+      gin.textContent=Math.round(total*p).toLocaleString('es');gleft.textContent=Math.round(total*(1-p)).toLocaleString('es');},24);}
+  let toastTimer=null;
+  function toast(m){const t=document.getElementById('toast');document.getElementById('toast-txt').textContent=m;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
+  function tickClock(){const d=new Date();document.getElementById('clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+  tickClock();setInterval(tickClock,10000);
+</script>
+</body>
+</html>
