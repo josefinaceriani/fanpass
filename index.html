@@ -436,10 +436,10 @@
         <div id="coll-cards">
           <p class="sub" style="margin:0 0 2px">Coleccionables que te quedan al asistir a cada partido. Únicos y verificables en tu wallet.</p>
           <div class="cardgrid">
-            <div class="pcard" onclick="openCard('legendary')">__CARD_legendary__</div>
-            <div class="pcard" onclick="openCard('epic')">__CARD_epic__</div>
-            <div class="pcard" onclick="openCard('rare')">__CARD_rare__</div>
-            <div class="pcard" onclick="openCard('common')">__CARD_common__</div>
+            <div class="pcard" onclick="openCard('legendary')"><img class="pcard-img" src="img/card3.png" alt="Card coleccionable"></div>
+            <div class="pcard" onclick="openCard('epic')"><img class="pcard-img" src="img/card4.png" alt="Card coleccionable"></div>
+            <div class="pcard" onclick="openCard('rare')"><img class="pcard-img" src="img/card5.png" alt="Card coleccionable"></div>
+            <div class="pcard" onclick="openCard('common')"><img class="pcard-img" src="img/card6.png" alt="Card coleccionable"></div>
           </div>
         </div>
 
@@ -458,7 +458,7 @@
       <section class="screen" id="s-card">
         <div class="topbar"><div class="iconbtn" onclick="back('s-collection')">←</div><h2>Card coleccionable</h2><div class="iconbtn right">__ICON_SHARE__</div></div>
         <div style="display:flex;justify-content:center;margin-top:4px">
-          <div class="pcard" id="card-detail-art" style="width:70%;aspect-ratio:.66;cursor:default"></div>
+          <div class="pcard" style="width:70%;aspect-ratio:.66;cursor:default"><img class="pcard-img" id="card-detail-art" src="img/card3.png" alt="Card coleccionable"></div>
         </div>
         <div class="center mt14"><span class="rarity" id="card-detail-rarity" style="position:static;background:linear-gradient(90deg,#E0457B,#ff8db5);color:#fff">Legendary · 1 de 50</span></div>
         <div class="section-h">Datos verificables</div>
@@ -910,20 +910,16 @@
     finder(0,0);finder((n-7)*c,0);finder(0,(n-7)*c);return `<svg class="qr" viewBox="0 0 ${n*c} ${n*c}">${cells}</svg>`;}
 
   const cardMeta = {
-    legendary:{supply:50,token:'#3981'},
-    epic:{supply:150,token:'#4417'},
-    rare:{supply:400,token:'#5920'},
-    common:{supply:1000,token:'#7203'},
+    legendary:{supply:50,token:'#3981',img:'img/card3.png'},
+    epic:{supply:150,token:'#4417',img:'img/card4.png'},
+    rare:{supply:400,token:'#5920',img:'img/card5.png'},
+    common:{supply:1000,token:'#7203',img:'img/card6.png'},
   };
 
   function bannerImg(src,alt){return `<img src="${src}" alt="${alt||'Evento'}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">`}
 
   let html=document.body.innerHTML;
-  html=html.split('__CARD_legendary__').join(pcard(cards.legendary))
-           .split('__CARD_epic__').join(pcard(cards.epic))
-           .split('__CARD_rare__').join(pcard(cards.rare))
-           .split('__CARD_common__').join(pcard(cards.common))
-           .split('__ART_FIELD1__').join(bannerImg('img/banner-nightgame.jpg','Storm vs. Blaze'))
+  html=html.split('__ART_FIELD1__').join(bannerImg('img/banner-nightgame.jpg','Storm vs. Blaze'))
            .split('__ART_FIELD2__').join(bannerImg('img/banner-matchup.jpg','Summit vs. Tide'))
            .split('__ART_FIELD3__').join(bannerImg('img/banner-huddle.jpg','Storm vs. Monarchs'))
            .split('__ART_FIELD4__').join(bannerImg('img/banner-matchup.jpg','Partido de fútbol americano'))
@@ -953,7 +949,7 @@
 
   function openCard(key){
     const info=cards[key],meta=cardMeta[key];
-    document.getElementById('card-detail-art').innerHTML=pcard(Object.assign({},info,{big:true}));
+    document.getElementById('card-detail-art').src=meta.img;
     document.getElementById('card-detail-rarity').textContent=info.rarity+' · 1 de '+meta.supply;
     document.getElementById('card-detail-rarity').style.background=info.rcol;
     const initial=info.player.split(' ')[0][0]+'.';
