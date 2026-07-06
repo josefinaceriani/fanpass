@@ -14,14 +14,15 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:#000;color:var(--text);display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;}
+    background:#000;color:var(--text);display:flex;align-items:center;justify-content:center;
+    min-height:100vh;min-height:100dvh;overflow:hidden;}
   .stage{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
     background:radial-gradient(900px 500px at 80% -10%,rgba(205,255,58,.10),transparent 60%),
       radial-gradient(700px 600px at -10% 110%,rgba(91,141,239,.06),transparent 55%),#070806;padding:24px;}
-  .phone{position:relative;width:390px;height:844px;max-height:96vh;background:var(--bg);
+  .phone{position:relative;width:390px;height:844px;max-height:96vh;max-height:96dvh;background:var(--bg);
     border-radius:46px;box-shadow:0 0 0 11px #15171180,0 40px 90px -20px #000,0 0 120px -40px var(--accent);
     overflow:hidden;display:flex;flex-direction:column;}
-  @media (max-width:520px){.stage{padding:0}.phone{width:100vw;height:100vh;max-height:none;border-radius:0;box-shadow:none;}}
+  @media (max-width:520px){.stage{padding:0}.phone{width:100vw;height:100vh;height:100dvh;max-height:none;border-radius:0;box-shadow:none;}}
 
   .statusbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 26px 6px;font-size:13px;font-weight:600;color:var(--text);}
   .statusbar .dots{display:flex;gap:5px;align-items:center}
@@ -31,7 +32,7 @@
   .statusbar .bat::before{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:70%;background:var(--accent);border-radius:1px}
 
   .viewport{position:relative;flex:1 1 auto;overflow:hidden}
-  .screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:6px 20px 100px;overflow-y:auto;overflow-x:hidden;
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:6px 20px calc(100px + env(safe-area-inset-bottom));overflow-y:auto;overflow-x:hidden;
     opacity:0;visibility:hidden;transform:translateX(18px);transition:opacity .32s var(--ease),transform .32s var(--ease),visibility .32s;-webkit-overflow-scrolling:touch;}
   .screen::-webkit-scrollbar{width:0}
   .screen.active{opacity:1;visibility:visible;transform:none}
@@ -288,10 +289,37 @@
         </div>
         <div class="section-h">Cuenta</div>
         <div class="list">
-          <div class="litem"><span class="ico">__ICON_WALLET__</span><div class="meta"><div class="t">Mi wallet integrada</div><div class="s">0x3f…a91c · Polygon</div></div><span class="muted">→</span></div>
+          <div class="litem" onclick="go('s-wallet')"><span class="ico">__ICON_WALLET__</span><div class="meta"><div class="t">Mi wallet integrada</div><div class="s">0x3f…a91c · Polygon</div></div><span class="muted">→</span></div>
           <div class="litem"><span class="ico">__ICON_BELL__</span><div class="meta"><div class="t">Notificaciones</div><div class="s">Eventos, beneficios y ofertas</div></div><span class="muted">→</span></div>
           <div class="litem" onclick="go('s-role')"><span class="ico">__ICON_SWAP__</span><div class="meta"><div class="t">Cambiar de rol</div><div class="s">Ir al panel de organizador</div></div><span class="muted">→</span></div>
         </div>
+      </section>
+
+      <!-- FAN: WALLET DETAIL -->
+      <section class="screen" id="s-wallet">
+        <div class="topbar"><div class="iconbtn" onclick="back('s-profile')">←</div><h2>Mi wallet integrada</h2></div>
+        <div class="card center" style="padding:22px;background:linear-gradient(160deg,#1f2319,#141710);border-color:#2c3124">
+          <div style="width:56px;height:56px;border-radius:16px;background:rgba(205,255,58,.12);display:flex;align-items:center;justify-content:center;margin:0 auto">__ICON_WALLET__</div>
+          <div class="mono mt8" style="font-size:15px;font-weight:700">0x3f2A…a91c</div>
+          <span class="verified mt8" style="justify-content:center;display:flex">__ICON_SHIELD__ Wallet verificada</span>
+        </div>
+        <div class="section-h">Cómo funciona tu seguridad</div>
+        <div class="list">
+          <div class="benefit"><span class="b-ic">__ICON_SHIELD2__</span><div class="meta"><div class="t">Wallet no-custodial (MPC)</div><div class="s">Tu clave privada se divide en partes cifradas. FanPass nunca tiene acceso completo a ella.</div></div></div>
+          <div class="benefit"><span class="b-ic">__ICON_LOCK2__</span><div class="meta"><div class="t">Desbloqueo biométrico</div><div class="s">Face ID / huella para confirmar cada acción sensible en este dispositivo.</div></div></div>
+          <div class="benefit"><span class="b-ic">__ICON_KEY__</span><div class="meta"><div class="t">Frase de recuperación</div><div class="s">Se generó al crear tu cuenta. Guardala offline: es la única forma de recuperar el acceso.</div></div></div>
+        </div>
+        <div class="section-h">Detalles técnicos</div>
+        <div class="card" style="padding:16px">
+          <div class="info-line"><span class="k">Dirección</span><span class="v mono">0x3f2A…a91c</span></div>
+          <div class="info-line"><span class="k">Red</span><span class="v">Polygon PoS</span></div>
+          <div class="info-line"><span class="k">Estándar de firma</span><span class="v">Account Abstraction (ERC-4337)</span></div>
+          <div class="info-line"><span class="k">Custodia de claves</span><span class="v">MPC · 2 de 3 fragmentos</span></div>
+          <div class="info-line"><span class="k">Gas de transacciones</span><span class="v accent">Lo paga FanPass</span></div>
+        </div>
+        <button class="btn ghost mt14" onclick="toast('Frase de recuperación (demo)')">__ICON_KEY__ Ver frase de recuperación</button>
+        <button class="btn outline mt8" onclick="toast('Exportar clave (demo)')">Exportar a otra wallet</button>
+        <div style="height:8px"></div>
       </section>
 
       <!-- FAN: TICKET -->
@@ -408,10 +436,10 @@
         <div id="coll-cards">
           <p class="sub" style="margin:0 0 2px">Coleccionables que te quedan al asistir a cada partido. Únicos y verificables en tu wallet.</p>
           <div class="cardgrid">
-            <div class="pcard" onclick="go('s-card')"><img class="pcard-img" src="img/card3.png" alt="Card coleccionable"></div>
-            <div class="pcard" onclick="go('s-card')"><img class="pcard-img" src="img/card4.png" alt="Card coleccionable"></div>
-            <div class="pcard" onclick="go('s-card')"><img class="pcard-img" src="img/card5.png" alt="Card coleccionable"></div>
-            <div class="pcard" onclick="go('s-card')"><img class="pcard-img" src="img/card6.png" alt="Card coleccionable"></div>
+            <div class="pcard" onclick="openCard('legendary')">__CARD_legendary__</div>
+            <div class="pcard" onclick="openCard('epic')">__CARD_epic__</div>
+            <div class="pcard" onclick="openCard('rare')">__CARD_rare__</div>
+            <div class="pcard" onclick="openCard('common')">__CARD_common__</div>
           </div>
         </div>
 
@@ -430,15 +458,15 @@
       <section class="screen" id="s-card">
         <div class="topbar"><div class="iconbtn" onclick="back('s-collection')">←</div><h2>Card coleccionable</h2><div class="iconbtn right">__ICON_SHARE__</div></div>
         <div style="display:flex;justify-content:center;margin-top:4px">
-          <div class="pcard" style="width:70%;aspect-ratio:.66;cursor:default"><img class="pcard-img" src="img/card3.png" alt="Card coleccionable"></div>
+          <div class="pcard" id="card-detail-art" style="width:70%;aspect-ratio:.66;cursor:default"></div>
         </div>
-        <div class="center mt14"><span class="rarity" style="position:static;background:linear-gradient(90deg,#E0457B,#ff8db5);color:#fff">Legendary · 1 de 50</span></div>
+        <div class="center mt14"><span class="rarity" id="card-detail-rarity" style="position:static;background:linear-gradient(90deg,#E0457B,#ff8db5);color:#fff">Legendary · 1 de 50</span></div>
         <div class="section-h">Datos verificables</div>
         <div class="card" style="padding:16px">
-          <div class="info-line"><span class="k">Jugador</span><span class="v">D. Cole · #12</span></div>
+          <div class="info-line"><span class="k">Jugador</span><span class="v" id="card-detail-player">D. Cole · #12</span></div>
           <div class="info-line"><span class="k">Partido</span><span class="v">Storm vs. Blaze</span></div>
           <div class="info-line"><span class="k">Estándar</span><span class="v">ERC-721</span></div>
-          <div class="info-line"><span class="k">Token ID</span><span class="v mono">#3981</span></div>
+          <div class="info-line"><span class="k">Token ID</span><span class="v mono" id="card-detail-token">#3981</span></div>
           <div class="info-line"><span class="k">Red</span><span class="v">Polygon PoS</span></div>
           <div class="info-line"><span class="k">Metadata</span><span class="v mono accent">IPFS · ver</span></div>
         </div>
@@ -652,7 +680,8 @@
         <div class="section-h">Medio de pago</div>
         <div class="sectors">
           <div class="sector sel" onclick="pickPay(this)"><span class="ico" style="width:34px;height:34px;border-radius:8px">__ICON_CARD2__</span><div><div style="font-weight:700;font-size:14px">Visa ···· 6411</div><div class="muted" style="font-size:11.5px">Tarjeta guardada</div></div><span class="check" style="margin-left:auto">__ICON_CHK__</span></div>
-          <div class="sector" onclick="pickPay(this)"><span class="ico" style="width:34px;height:34px;border-radius:8px">__ICON_PLUS2__</span><div><div style="font-weight:700;font-size:14px">Otro medio</div><div class="muted" style="font-size:11.5px">Tarjeta o billetera</div></div><span class="check" style="margin-left:auto">__ICON_CHK__</span></div>
+          <div class="sector" onclick="pickPay(this)"><span class="ico" style="width:34px;height:34px;border-radius:8px;background:rgba(91,141,239,.14)">__ICON_WALLET_BLUE__</span><div><div style="font-weight:700;font-size:14px">Wallet cripto</div><div class="muted" style="font-size:11.5px">0x3f…a91c · pagá con USDC en Polygon</div></div><span class="check" style="margin-left:auto">__ICON_CHK__</span></div>
+          <div class="sector" onclick="pickPay(this)"><span class="ico" style="width:34px;height:34px;border-radius:8px">__ICON_PLUS2__</span><div><div style="font-weight:700;font-size:14px">Otro medio</div><div class="muted" style="font-size:11.5px">Otra tarjeta o transferencia</div></div><span class="check" style="margin-left:auto">__ICON_CHK__</span></div>
         </div>
         <div class="card mt20" style="padding:13px;display:flex;gap:10px;align-items:center;background:var(--surface-2)">
           <span class="ico" style="background:rgba(205,255,58,.12)">__ICON_SHIELD2__</span>
@@ -842,6 +871,7 @@
     __MARK__:`<svg viewBox="0 0 32 32" fill="none"><path d="M16 2v28M6 6l20 20M26 6 6 26M2 16h28" stroke="#CDFF3A" stroke-width="3.4" stroke-linecap="round"/></svg>`,
     __ICON_ARROW__:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#CDFF3A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     __ICON_WALLET__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#CDFF3A" stroke-width="2"/><path d="M3 10h18" stroke="#CDFF3A" stroke-width="2"/><circle cx="17" cy="14" r="1.4" fill="#CDFF3A"/></svg>`,
+    __ICON_WALLET_BLUE__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#5B8DEF" stroke-width="2"/><path d="M3 10h18" stroke="#5B8DEF" stroke-width="2"/><circle cx="17" cy="14" r="1.4" fill="#5B8DEF"/></svg>`,
     __ICON_BELL__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round"/></svg>`,
     __ICON_SHIELD__:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Z" stroke="#CDFF3A" stroke-width="2" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     __ICON_SHIELD2__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Z" stroke="#CDFF3A" stroke-width="2" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -857,6 +887,8 @@
     __ICON_SHARE__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3v12M8 7l4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" stroke="#F4F5F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     __ICON_SEARCH__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#F4F5F0" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="#F4F5F0" stroke-width="2" stroke-linecap="round"/></svg>`,
     __ICON_LOCK__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="#0c0f06" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#0c0f06" stroke-width="2"/></svg>`,
+    __ICON_LOCK2__:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2"/></svg>`,
+    __ICON_KEY__:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="15" r="4" stroke="currentColor" stroke-width="2"/><path d="M11 12 20 3M15 8l3 3M19 4l1 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
     __ICON_SCAN2__:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M4 12h16" stroke="#CDFF3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     __ICON_CHK_SM__:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="#0c0f06" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     __ICON_CHK_BIG__:`<svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="#CDFF3A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -877,12 +909,25 @@
     for(let y=0;y<n;y++)for(let x=0;x<n;x++){if((x<8&&y<8)||(x>n-8&&y<8)||(x<8&&y>n-8))continue;if(rnd()>0.55)cells+=`<rect x="${x*c}" y="${y*c}" width="${c}" height="${c}"/>`;}
     finder(0,0);finder((n-7)*c,0);finder(0,(n-7)*c);return `<svg class="qr" viewBox="0 0 ${n*c} ${n*c}">${cells}</svg>`;}
 
+  const cardMeta = {
+    legendary:{supply:50,token:'#3981'},
+    epic:{supply:150,token:'#4417'},
+    rare:{supply:400,token:'#5920'},
+    common:{supply:1000,token:'#7203'},
+  };
+
+  function bannerImg(src,alt){return `<img src="${src}" alt="${alt||'Evento'}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">`}
+
   let html=document.body.innerHTML;
-  html=html.split('__ART_FIELD1__').join(scene('#2a3a1e','#10160b','#CDFF3A',1))
-           .split('__ART_FIELD2__').join(scene('#3a1e2e','#16080f','#E0457B',2))
-           .split('__ART_FIELD3__').join(scene('#1c2c3a','#0c1118','#5B8DEF',3))
-           .split('__ART_FIELD4__').join(scene('#33203a','#140c18','#C061D6',4))
-           .split('__ART_STADIUM__').join(stadium())
+  html=html.split('__CARD_legendary__').join(pcard(cards.legendary))
+           .split('__CARD_epic__').join(pcard(cards.epic))
+           .split('__CARD_rare__').join(pcard(cards.rare))
+           .split('__CARD_common__').join(pcard(cards.common))
+           .split('__ART_FIELD1__').join(bannerImg('img/banner-nightgame.jpg','Storm vs. Blaze'))
+           .split('__ART_FIELD2__').join(bannerImg('img/banner-matchup.jpg','Summit vs. Tide'))
+           .split('__ART_FIELD3__').join(bannerImg('img/banner-huddle.jpg','Storm vs. Monarchs'))
+           .split('__ART_FIELD4__').join(bannerImg('img/banner-matchup.jpg','Partido de fútbol americano'))
+           .split('__ART_STADIUM__').join(bannerImg('img/banner-nightgame.jpg','Estadio'))
            .split('__ART_ORGSCENE__').join(orgScene())
            .split('__HELM_STORM__').join(helmet('#CDFF3A'))
            .split('__HELM_BLAZE__').join(helmet('#E0457B'))
@@ -906,6 +951,16 @@
   function enterFan(){go('s-home');}
   function enterOrg(){go('o-home');}
 
+  function openCard(key){
+    const info=cards[key],meta=cardMeta[key];
+    document.getElementById('card-detail-art').innerHTML=pcard(Object.assign({},info,{big:true}));
+    document.getElementById('card-detail-rarity').textContent=info.rarity+' · 1 de '+meta.supply;
+    document.getElementById('card-detail-rarity').style.background=info.rcol;
+    const initial=info.player.split(' ')[0][0]+'.';
+    document.getElementById('card-detail-player').textContent=initial+' '+info.player.split(' ')[1]+' · #'+info.num;
+    document.getElementById('card-detail-token').textContent=meta.token;
+    go('s-card');
+  }
   function pickSector(el){const c=el.closest('.sectors');c.querySelectorAll('.sector').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');
     if(el.dataset.name){document.getElementById('buy-sector').textContent=el.dataset.name;document.getElementById('buy-price').textContent='$'+el.dataset.price;
       document.getElementById('pay-sector').textContent=el.dataset.name;
